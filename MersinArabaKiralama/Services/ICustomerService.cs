@@ -7,9 +7,15 @@ namespace MersinArabaKiralama.Services
     public interface ICustomerService
     {
         /// <summary>
-        /// Tüm müşterileri getirir
+        /// Tüm müşterileri getirir (Sayfalama bilgisi olmadan)
         /// </summary>
         Task<IEnumerable<Customer>> GetAllCustomersAsync(QueryParameters parameters);
+
+        /// <summary>
+        /// Tüm müşterileri sayfalama bilgileriyle birlikte getirir
+        /// </summary>
+        /// <returns>(Müşteri listesi, Toplam kayıt sayısı)</returns>
+        Task<(IEnumerable<Customer> Customers, int TotalCount)> GetAllCustomersWithCountAsync(QueryParameters parameters);
 
         /// <summary>
         /// ID'ye göre müşteri getirir

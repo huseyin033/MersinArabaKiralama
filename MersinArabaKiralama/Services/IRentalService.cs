@@ -8,9 +8,15 @@ namespace MersinArabaKiralama.Services
     public interface IRentalService
     {
         /// <summary>
-        /// Tüm kiralama kayıtlarını getirir
+        /// Tüm kiralama kayıtlarını getirir (Sayfalama bilgisi olmadan)
         /// </summary>
         Task<IEnumerable<Rental>> GetAllRentalsAsync(QueryParameters parameters);
+
+        /// <summary>
+        /// Tüm kiralama kayıtlarını sayfalama bilgileriyle birlikte getirir
+        /// </summary>
+        /// <returns>(Kiralama listesi, Toplam kayıt sayısı)</returns>
+        Task<(IEnumerable<Rental> Rentals, int TotalCount)> GetAllRentalsWithCountAsync(QueryParameters parameters);
 
         /// <summary>
         /// ID'ye göre kiralama kaydı getirir

@@ -21,22 +21,50 @@ namespace MersinArabaKiralama.Models
     /// <typeparam name="T">Dönecek veri tipi</typeparam>
     public class ApiResponse<T>
     {
-        public bool Success { get; set; }
+        /// <summary>
+        /// İşlemin başarılı olup olmadığını belirtir
+        /// </summary>
+        public bool Success { get; set; } // Bu, 'Success' özelliğinin TEK tanımı olmalı
+
+        /// <summary>
+        /// HTTP durum kodu
+        /// </summary>
         public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
+
+        /// <summary>
+        /// İşlem hakkında bilgilendirici mesaj
+        /// </summary>
         public string? Message { get; set; }
+
+        /// <summary>
+        /// İşlem sonucu dönen veri
+        /// </summary>
         public T? Data { get; set; }
+
+        /// <summary>
+        /// Sayfalama bilgileri
+        /// </summary>
         public PaginationMetadata? Pagination { get; set; }
+
+        /// <summary>
+        /// Hata mesajları listesi
+        /// </summary>
         public IEnumerable<string>? Errors { get; set; }
+
+        /// <summary>
+        /// Yanıtın oluşturulma zamanı (UTC)
+        /// </summary>
         public DateTime Timestamp { get; } = DateTime.UtcNow;
         public string? Path { get; set; }
 
+        // Başarılı yanıtlar
         public static ApiResponse<T> Success(T data, string? message = null, PaginationMetadata? pagination = null)
         {
-            return new ApiResponse<T> 
-            { 
-                Success = true, 
+            return new ApiResponse<T>
+            {
+                Success = true,
                 StatusCode = HttpStatusCode.OK,
-                Data = data, 
+                Data = data,
                 Message = message ?? "İşlem başarılı",
                 Pagination = pagination
             };
@@ -63,11 +91,12 @@ namespace MersinArabaKiralama.Models
             };
         }
 
+        // Hata yanıtları
         public static ApiResponse<T> BadRequest(string message, IEnumerable<string>? errors = null)
         {
             return new ApiResponse<T>
             {
-                Success = false,
+                Success = false, // Tüm hata metotlarında 'Success' kullanılıyor
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = message,
                 Errors = errors
@@ -78,7 +107,7 @@ namespace MersinArabaKiralama.Models
         {
             return new ApiResponse<T>
             {
-                Success = false,
+                Success = false, // Tüm hata metotlarında 'Success' kullanılıyor
                 StatusCode = HttpStatusCode.Unauthorized,
                 Message = message
             };
@@ -88,7 +117,7 @@ namespace MersinArabaKiralama.Models
         {
             return new ApiResponse<T>
             {
-                Success = false,
+                Success = false, // Tüm hata metotlarında 'Success' kullanılıyor
                 StatusCode = HttpStatusCode.Forbidden,
                 Message = message
             };
@@ -98,21 +127,30 @@ namespace MersinArabaKiralama.Models
         {
             return new ApiResponse<T>
             {
-                Success = false,
+                Success = false, // Tüm hata metotlarında 'Success' kullanılıyor
                 StatusCode = HttpStatusCode.NotFound,
                 Message = message
             };
         }
 
-        public static ApiResponse<T> Error(string message, HttpStatusCode statusCode = HttpStatusCode.InternalServerError, IEnumerable<string>? errors = null)
+        /// <summary>
+        /// Genel hata yanıtı oluşturur
+        /// </summary>
+        /// <param name="message">Hata mesajı</param>
+        /// <param name="statusCode">HTTP durum kodu</param>
+        /// <param name="errors">Hata detayları listesi</param>
+        /// <returns>ApiResponse&lt;T&gt; nesnesi</returns>
+        public static ApiResponse<T> Error(string message, HttpStatusCode statusCode, IEnumerable<string>? errors = null)
         {
             return new ApiResponse<T>
             {
-                Success = false,
+                Success1 = false, // Tüm hata metotlarında 'Success' kullanılıyor
                 StatusCode = statusCode,
                 Message = message,
-                Errors = errors
+                Errors = errors ?? Array.Empty<string>()
             };
         }
     }
 }
+
+

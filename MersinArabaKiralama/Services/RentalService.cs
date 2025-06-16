@@ -30,58 +30,96 @@ namespace MersinArabaKiralama.Services
             try
             {
                 _logger.LogInformation("Tüm kiralama kayıtları getiriliyor");
-                
-                var query = _context.Rentals
-                    .Include(r => r.Car)
-                    .Include(r => r.Customer)
-                    .AsQueryable();
-
-                // Arama terimi varsa uygula
-                if (!string.IsNullOrEmpty(parameters.SearchTerm))
-                {
-                    var searchTerm = parameters.SearchTerm.ToLower();
-                    query = query.Where(r => 
-                        r.Customer.FirstName.ToLower().Contains(searchTerm) ||
-                        r.Customer.LastName.ToLower().Contains(searchTerm) ||
-                        r.Customer.Email.ToLower().Contains(searchTerm) ||
-                        r.Car.Brand.ToLower().Contains(searchTerm) ||
-                        r.Car.Model.ToLower().Contains(searchTerm));
-                }
-
-                // Sıralama
-                if (!string.IsNullOrEmpty(parameters.OrderBy))
-                {
-                    query = parameters.OrderBy.ToLower() switch
-                    {
-                        "startdate" => parameters.Descending ? 
-                            query.OrderByDescending(r => r.StartDate) : 
-                            query.OrderBy(r => r.StartDate),
-                        "enddate" => parameters.Descending ? 
-                            query.OrderByDescending(r => r.EndDate) : 
-                            query.OrderBy(r => r.EndDate),
-                        "totalprice" => parameters.Descending ? 
-                            query.OrderByDescending(r => r.TotalPrice) : 
-                            query.OrderBy(r => r.TotalPrice),
-                        _ => query.OrderBy(r => r.Id)
-                    };
-                }
-                else
-                {
-                    query = query.OrderByDescending(r => r.StartDate);
-                }
-
-                // Sayfalama
-                return await query
-                    .Skip((parameters.PageNumber - 1) * parameters.PageSize)
-                    .Take(parameters.PageSize)
-                    .AsNoTracking()
-                    .ToListAsync();
+                var (query, _) = await GetRentalsQuery(parameters);
+                return await query.ToListAsync();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Kiralama kayıtları getirilirken bir hata oluştu");
                 throw;
             }
+        }
+
+        public async Task<(IEnumerable<Rental> Rentals, int TotalCount)> GetAllRentalsWithCountAsync(QueryParameters parameters)
+        {
+            try
+            {
+                _logger.LogInformation("Kiralama kayıtları sayfalama bilgileriyle getiriliyor");
+                var (query, totalCount) = await GetRentalsQuery(parameters, true);
+                var rentals = await query.ToListAsync();
+                return (rentals, totalCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kiralama kayıtları getirilirken bir hata oluştu");
+                throw;
+            }
+        }
+
+        private async Task<(IQueryable<Rental> Query, int TotalCount)> GetRentalsQuery(QueryParameters parameters, bool includeCount = false)
+        {
+            var query = _context.Rentals
+                .Include(r => r.Car)
+                .Include(r => r.Customer)
+                .AsQueryable();
+
+            // Arama terimi varsa uygula
+            if (!string.IsNullOrEmpty(parameters.SearchTerm))
+            {
+                var searchTerm = parameters.SearchTerm.ToLower();
+                query = query.Where(r => 
+                    r.Customer.FirstName.ToLower().Contains(searchTerm) ||
+                    r.Customer.LastName.ToLower().Contains(searchTerm) ||
+                    r.Customer.Email.ToLower().Contains(searchTerm) ||
+                    r.Car.Brand.ToLower().Contains(searchTerm) ||
+                    r.Car.Model.ToLower().Contains(searchTerm));
+            }
+
+            // Toplam kayıt sayısını al
+            int totalCount = 0;
+            if (includeCount)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            // Sıralama
+            if (!string.IsNullOrEmpty(parameters.OrderBy))
+            {
+                query = parameters.OrderBy.ToLower() switch
+                {
+                    "startdate" => parameters.SortDirection == SortDirection.Descending ? 
+                        query.OrderByDescending(r => r.StartDate) : 
+                        query.OrderBy(r => r.StartDate),
+                    "enddate" => parameters.SortDirection == SortDirection.Descending ? 
+                        query.OrderByDescending(r => r.EndDate) : 
+                        query.OrderBy(r => r.EndDate),
+                    "totalprice" => parameters.SortDirection == SortDirection.Descending ? 
+                        query.OrderByDescending(r => r.TotalPrice) : 
+                        query.OrderBy(r => r.TotalPrice),
+                    "status" => parameters.SortDirection == SortDirection.Descending ? 
+                        query.OrderByDescending(r => r.Status) : 
+                        query.OrderBy(r => r.Status),
+                    _ => parameters.SortDirection == SortDirection.Descending ?
+                        query.OrderByDescending(r => r.CreatedAt) :
+                        query.OrderBy(r => r.CreatedAt)
+                };
+            }
+            else
+            {
+                query = parameters.SortDirection == SortDirection.Descending ?
+                    query.OrderByDescending(r => r.CreatedAt) :
+                    query.OrderBy(r => r.CreatedAt);
+            }
+
+            // Sayfalama uygula
+            if (parameters.PageSize > 0)
+            {
+                query = query
+                    .Skip((parameters.PageNumber - 1) * parameters.PageSize)
+                    .Take(parameters.PageSize);
+            }
+
+            return (query.AsNoTracking(), totalCount);
         }
 
         public async Task<Rental?> GetRentalByIdAsync(int id)

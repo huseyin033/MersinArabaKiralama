@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MersinArabaKiralama.Data;
 using MersinArabaKiralama.Models;
-using MersinArabaKiralama.Middlewares;
+using MersinArabaKiralama.Middleware;
+using MersinArabaKiralama.Exceptions;
 using Serilog;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
@@ -34,9 +35,68 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddAuthorization();
+// API Versiyonlama
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = new UrlSegmentApiVersionReader();
+});
+
+builder.Services.AddVersionedApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    options.JsonSerializerOptions.WriteIndented = true;
+});
 builder.Services.AddRazorPages();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { 
+        Title = "Mersin Araba Kiralama API", 
+        Version = "v1",
+        Description = "Mersin Araba Kiralama uygulaması için REST API",
+        Contact = new OpenApiContact
+        {
+            Name = "Destek",
+            Email = "destek@mersinarackiralama.com"
+        }
+    });
+    
+    // JWT Bearer Authentication
+    var securityScheme = new OpenApiSecurityScheme
+    {
+        Name = "JWT Authentication",
+        Description = "JWT Bearer token ile yetkilendirme",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Reference = new OpenApiReference
+        {
+            Id = JwtBearerDefaults.AuthenticationScheme,
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+    
+    c.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {securityScheme, Array.Empty<string>()}
+    });
+    
+    // XML dokümantasyonu
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+});
 // Add CORS policy for React dev server
 builder.Services.AddCors(options =>
 {
@@ -48,6 +108,7 @@ builder.Services.AddCors(options =>
 // Uygulama servisleri (Dependency Injection)
 builder.Services.AddScoped<MersinArabaKiralama.Services.ICarService, MersinArabaKiralama.Services.CarService>();
 builder.Services.AddScoped<MersinArabaKiralama.Services.ICustomerService, MersinArabaKiralama.Services.CustomerService>();
+builder.Services.AddScoped<MersinArabaKiralama.Services.IPaymentService, MersinArabaKiralama.Services.FakePaymentService>();
 builder.Services.AddScoped<MersinArabaKiralama.Services.IRentalService, MersinArabaKiralama.Services.RentalService>();
 builder.Services.AddTransient<ErrorHandlerMiddleware>();
 

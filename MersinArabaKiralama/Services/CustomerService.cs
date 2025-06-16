@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static MersinArabaKiralama.Models.SortDirection;
 
 namespace MersinArabaKiralama.Services
 {
@@ -24,49 +25,82 @@ namespace MersinArabaKiralama.Services
         {
             try
             {
-                var query = _context.Customers.AsQueryable();
-
-                // Arama terimi varsa uygula
-                if (!string.IsNullOrEmpty(parameters.SearchTerm))
-                {
-                    var searchTerm = parameters.SearchTerm.ToLower();
-                    query = query.Where(c => 
-                        c.FirstName.ToLower().Contains(searchTerm) || 
-                        c.LastName.ToLower().Contains(searchTerm) ||
-                        c.Email.ToLower().Contains(searchTerm));
-                }
-
-                // Sıralama
-                if (!string.IsNullOrEmpty(parameters.OrderBy))
-                {
-                    query = parameters.OrderBy.ToLower() switch
-                    {
-                        "name" => parameters.Descending ? 
-                            query.OrderByDescending(c => c.LastName).ThenByDescending(c => c.FirstName) : 
-                            query.OrderBy(c => c.LastName).ThenBy(c => c.FirstName),
-                        "email" => parameters.Descending ? 
-                            query.OrderByDescending(c => c.Email) : 
-                            query.OrderBy(c => c.Email),
-                        _ => query.OrderBy(c => c.Id)
-                    };
-                }
-                else
-                {
-                    query = query.OrderBy(c => c.Id);
-                }
-
-                // Sayfalama
-                return await query
-                    .Skip((parameters.PageNumber - 1) * parameters.PageSize)
-                    .Take(parameters.PageSize)
-                    .AsNoTracking()
-                    .ToListAsync();
+                var (customers, _) = await GetCustomersQuery(parameters);
+                return await customers.ToListAsync();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Müşteriler getirilirken bir hata oluştu");
                 throw;
             }
+        }
+
+        public async Task<(IEnumerable<Customer> Customers, int TotalCount)> GetAllCustomersWithCountAsync(QueryParameters parameters)
+        {
+            try
+            {
+                var (query, totalCount) = await GetCustomersQuery(parameters, true);
+                var customers = await query.ToListAsync();
+                return (customers, totalCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Müşteriler getirilirken bir hata oluştu");
+                throw;
+            }
+        }
+
+        private async Task<(IQueryable<Customer> Query, int TotalCount)> GetCustomersQuery(QueryParameters parameters, bool includeCount = false)
+        {
+            var query = _context.Customers.AsQueryable();
+
+            // Arama terimi varsa uygula
+            if (!string.IsNullOrEmpty(parameters.SearchTerm))
+            {
+                var searchTerm = parameters.SearchTerm.ToLower();
+                query = query.Where(c => 
+                    c.FirstName.ToLower().Contains(searchTerm) || 
+                    c.LastName.ToLower().Contains(searchTerm) ||
+                    c.Email.ToLower().Contains(searchTerm));
+            }
+
+            // Toplam kayıt sayısını al
+            int totalCount = 0;
+            if (includeCount)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            // Sayfalama uygula
+            if (parameters.PageSize > 0)
+            {
+                query = query
+                    .Skip((parameters.PageNumber - 1) * parameters.PageSize)
+                    .Take(parameters.PageSize);
+            }
+
+            // Sıralama
+            if (!string.IsNullOrEmpty(parameters.OrderBy))
+            {
+                query = parameters.OrderBy.ToLower() switch
+                {
+                    "name" => parameters.SortDirection == Descending ? 
+                        query.OrderByDescending(c => c.LastName).ThenByDescending(c => c.FirstName) : 
+                        query.OrderBy(c => c.LastName).ThenBy(c => c.FirstName),
+                    "email" => parameters.SortDirection == Descending ? 
+                        query.OrderByDescending(c => c.Email) : 
+                        query.OrderBy(c => c.Email),
+                    _ => parameters.SortDirection == Descending ?
+                        query.OrderByDescending(c => c.Id) : query.OrderBy(c => c.Id)
+                };
+            }
+            else
+            {
+                query = parameters.SortDirection == Descending ?
+                    query.OrderByDescending(c => c.Id) : query.OrderBy(c => c.Id);
+            }
+
+            return (query, totalCount);
         }
 
         public async Task<Customer?> GetCustomerByIdAsync(int id)

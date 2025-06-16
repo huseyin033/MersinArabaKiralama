@@ -1,0 +1,49 @@
+# .NET Core
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dbmdl
+*.jfm
+*.pfx
+*.publishsettings
+*.sln.docstates
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Local development
+appsettings.Development.json
+appsettings.Local.json
+
+# Logs
+*.log
+Logs/
+
+# Docker
+.dockerignore
+Dockerfile*
+docker-compose*
+**/bin/
+**/obj/
+
+# IDE
+.idea/
+.vs/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

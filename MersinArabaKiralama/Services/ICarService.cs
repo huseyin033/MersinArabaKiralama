@@ -7,14 +7,27 @@ namespace MersinArabaKiralama.Services
     public interface ICarService
     {
         /// <summary>
-        /// Tüm araçları getirir
+        /// Tüm araçları getirir (Sayfalama bilgisi olmadan)
         /// </summary>
         Task<IEnumerable<Car>> GetAllCarsAsync(QueryParameters parameters);
+
+        /// <summary>
+        /// Tüm araçları sayfalama bilgileriyle birlikte getirir
+        /// </summary>
+        /// <returns>(Araç listesi, Toplam kayıt sayısı)</returns>
+        Task<(IEnumerable<Car> Cars, int TotalCount)> GetAllCarsWithCountAsync(QueryParameters parameters);
 
         /// <summary>
         /// ID'ye göre araç getirir
         /// </summary>
         Task<Car?> GetCarByIdAsync(int id);
+
+        /// <summary>
+        /// Plaka numarasına göre araç getirir
+        /// </summary>
+        /// <param name="licensePlate">Araç plaka numarası</param>
+        /// <returns>Eşleşen araç veya null</returns>
+        Task<Car?> GetCarByLicensePlateAsync(string licensePlate);
 
         /// <summary>
         /// Yeni bir araç ekler
@@ -24,11 +37,17 @@ namespace MersinArabaKiralama.Services
         /// <summary>
         /// Mevcut bir aracı günceller
         /// </summary>
-        Task<bool> UpdateCarAsync(Car car);
+        /// <param name="car">Güncellenecek araç bilgileri</param>
+        /// <returns>Güncellenmiş araç bilgileri</returns>
+        /// <exception cref="ApiException">Araç bulunamazsa veya güncelleme sırasında hata oluşursa fırlatılır</exception>
+        Task<Car> UpdateCarAsync(Car car);
 
         /// <summary>
         /// Bir aracı siler
         /// </summary>
+        /// <param name="id">Silinecek aracın ID'si</param>
+        /// <returns>İşlem başarılıysa true, aksi halde false döner</returns>
+        /// <exception cref="ApiException">Araç bulunamazsa veya silme işlemi sırasında hata oluşursa fırlatılır</exception>
         Task<bool> DeleteCarAsync(int id);
 
 

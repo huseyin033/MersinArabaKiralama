@@ -1,0 +1,33 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag mersin-arabakiralama:latest
+
+    - name: Run tests
+      run: |
+        # Test komutlarınızı buraya ekleyin
+        echo "Testler çalıştırılacak"
+
+    - name: Push to GitHub Packages
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ghcr.io/${{ github.repository_owner }}/mersin-arabakiralama:latest

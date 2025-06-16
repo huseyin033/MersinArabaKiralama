@@ -5,6 +5,8 @@ using MersinArabaKiralama.Models;
 using MersinArabaKiralama.Services;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace MersinArabaKiralama.Controllers.Api
@@ -28,29 +30,66 @@ namespace MersinArabaKiralama.Controllers.Api
         /// <summary>
         /// Tüm müşterileri getirir
         /// </summary>
+        /// <summary>
+        /// Tüm müşterileri getirir
+        /// </summary>
+        /// <param name="parameters">Sayfalama ve sıralama parametreleri</param>
+        /// <response code="200">Başarılı işlem</response>
+        /// <response code="401">Yetkisiz erişim</response>
+        /// <response code="500">Sunucu hatası</response>
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<Customer>>>> GetCustomers([FromQuery] QueryParameters parameters)
+        [ProducesResponseType(typeof(ApiResponse<IEnumerable<Customer>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCustomers([FromQuery] QueryParameters parameters)
         {
             try
             {
                 _logger.LogInformation("Tüm müşteriler getiriliyor");
-                var customers = await _customerService.GetAllCustomersAsync(parameters);
-                return Ok(ApiResponse<IEnumerable<Customer>>.SuccessResult(customers));
+                
+                var (customers, totalCount) = await _customerService.GetAllCustomersWithCountAsync(parameters);
+                
+                // Sayfalama bilgilerini oluştur
+                var pagination = new PaginationMetadata
+                {
+                    TotalCount = totalCount,
+                    PageSize = parameters.PageSize,
+                    CurrentPage = parameters.PageNumber,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize)
+                };
+
+                var response = ApiResponse<IEnumerable<Customer>>.Success(
+                    customers,
+                    pagination: pagination,
+                    message: $"Toplam {totalCount} müşteri listelendi"
+                );
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Müşteriler getirilirken bir hata oluştu");
-                return StatusCode(500, ApiResponse<object>.ErrorResult("Bir hata oluştu"));
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError, 
+                    ApiResponse<object>.Error("Müşteriler getirilirken bir hata oluştu", HttpStatusCode.InternalServerError, new[] { ex.Message })
+                );
             }
         }
 
         /// <summary>
         /// ID'ye göre müşteri getirir
         /// </summary>
+        /// <summary>
+        /// ID'ye göre müşteri getirir
+        /// </summary>
+        /// <param name="id">Müşteri ID'si</param>
+        /// <response code="200">Müşteri bulundu</response>
+        /// <response code="404">Müşteri bulunamadı</response>
+        /// <response code="500">Sunucu hatası</response>
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<ApiResponse<Customer>>> GetCustomer(int id)
+        [ProducesResponseType(typeof(ApiResponse<Customer>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCustomer(int id)
         {
             try
             {
@@ -60,42 +99,64 @@ namespace MersinArabaKiralama.Controllers.Api
                 if (customer == null)
                 {
                     _logger.LogWarning($"{id} ID'li müşteri bulunamadı");
-                    return NotFound(ApiResponse<object>.ErrorResult("Müşteri bulunamadı"));
+                    return NotFound(ApiResponse<object>.NotFound($"{id} ID'li müşteri bulunamadı"));
                 }
 
-                return Ok(ApiResponse<Customer>.SuccessResult(customer));
+                return Ok(ApiResponse<Customer>.Success(customer, $"{customer.FullName} adlı müşteri getirildi"));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"{id} ID'li müşteri getirilirken bir hata oluştu");
-                return StatusCode(500, ApiResponse<object>.ErrorResult("Bir hata oluştu"));
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Error("Müşteri getirilirken bir hata oluştu", HttpStatusCode.InternalServerError, new[] { ex.Message })
+                );
             }
         }
 
         /// <summary>
         /// E-posta adresine göre müşteri getirir
         /// </summary>
+        /// <summary>
+        /// E-posta adresine göre müşteri getirir
+        /// </summary>
+        /// <param name="email">Müşteri e-posta adresi</param>
+        /// <response code="200">Müşteri bulundu</response>
+        /// <response code="400">Geçersiz e-posta formatı</response>
+        /// <response code="404">Müşteri bulunamadı</response>
+        /// <response code="500">Sunucu hatası</response>
         [HttpGet("by-email/{email}")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<ApiResponse<Customer>>> GetCustomerByEmail(string email)
+        [ProducesResponseType(typeof(ApiResponse<Customer>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCustomerByEmail(string email)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+                {
+                    return BadRequest(ApiResponse<object>.BadRequest("Geçerli bir e-posta adresi giriniz"));
+                }
+
                 _logger.LogInformation($"{email} e-posta adresli müşteri getiriliyor");
                 var customer = await _customerService.GetCustomerByEmailAsync(email);
 
                 if (customer == null)
                 {
                     _logger.LogWarning($"{email} e-posta adresli müşteri bulunamadı");
-                    return NotFound(ApiResponse<object>.ErrorResult("Müşteri bulunamadı"));
+                    return NotFound(ApiResponse<object>.NotFound($"{email} e-posta adresli müşteri bulunamadı"));
                 }
 
-                return Ok(ApiResponse<Customer>.SuccessResult(customer));
+                return Ok(ApiResponse<Customer>.Success(customer, $"{customer.Email} adresine sahip müşteri getirildi"));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"{email} e-posta adresli müşteri getirilirken bir hata oluştu");
-                return StatusCode(500, ApiResponse<object>.ErrorResult("Bir hata oluştu"));
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Error("Müşteri getirilirken bir hata oluştu", HttpStatusCode.InternalServerError, new[] { ex.Message })
+                );
             }
         }
 
