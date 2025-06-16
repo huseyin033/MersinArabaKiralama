@@ -1,0 +1,34 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using MersinAracKiralama.Models;
+
+namespace MersinAracKiralama.Data
+{
+    // Uygulamanın ana DbContext'i, Identity ile birlikte çalışır
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+        }
+
+        // Araçlar tablosu
+        public DbSet<Car> Cars { get; set; }
+
+        // Rezervasyonlar tablosu
+        public DbSet<Reservation> Reservations { get; set; }
+
+        // Müşteriler tablosu
+        public DbSet<Customer> Customers { get; set; }
+
+        // Kiralamalar tablosu
+        public DbSet<Rental> Rentals { get; set; }
+
+        // Gerekirse OnModelCreating ile ek yapılandırmalar yapılabilir
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+            // Örneğin: builder.Entity<Car>().Property(x => x.Brand).IsRequired();
+        }
+    }
+} 

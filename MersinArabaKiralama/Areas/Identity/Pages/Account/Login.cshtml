@@ -1,0 +1,40 @@
+@page
+@model MersinArabaKiralama.Areas.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Giriş Yap";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="text-center mb-4">Giriş Yap</h2>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <form method="post">
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label">E-posta (Gmail)</label>
+                        <input asp-for="Input.Email" class="form-control" placeholder="ornek@gmail.com" />
+                        <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label">Şifre</label>
+                        <input asp-for="Input.Password" type="password" class="form-control" placeholder="Şifreniz" />
+                        <span asp-validation-for="Input.Password" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input asp-for="Input.RememberMe" class="form-check-input" />
+                        <label asp-for="Input.RememberMe" class="form-check-label">Beni Hatırla</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Giriş Yap</button>
+                </form>
+                <div class="mt-3 text-center">
+                    <a asp-page="/Account/ForgotPassword">Şifremi Unuttum</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

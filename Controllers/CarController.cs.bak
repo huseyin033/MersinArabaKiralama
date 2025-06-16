@@ -1,0 +1,95 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MersinAracKiralama.Data;
+using MersinAracKiralama.Models;
+using MersinAracKiralama.Services;
+using Microsoft.AspNetCore.Authorization;
+
+namespace MersinAracKiralama.Controllers
+{
+    public class CarController : Controller
+    {
+        private readonly ICarService _carService;
+        public CarController(ICarService carService)
+        {
+            _carService = carService;
+        }
+
+        // Araçları listele
+        [Authorize]
+        public async Task<IActionResult> Index()
+        {
+            return View(await _carService.GetAllAsync());
+        }
+
+        // Detay sayfası
+        [Authorize]
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+            var car = await _carService.GetByIdAsync(id.Value);
+            if (car == null) return NotFound();
+            return View(car);
+        }
+
+        // Yeni araç ekle (GET)
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        // Yeni araç ekle (POST)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Car car)
+        {
+            if (ModelState.IsValid)
+            {
+                await _carService.AddAsync(car);
+                return RedirectToAction(nameof(Index));
+            }
+            return View(car);
+        }
+
+        // Araç düzenle (GET)
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null) return NotFound();
+            var car = await _carService.GetByIdAsync(id.Value);
+            if (car == null) return NotFound();
+            return View(car);
+        }
+
+        // Araç düzenle (POST)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Car car)
+        {
+            if (id != car.Id) return NotFound();
+            if (ModelState.IsValid)
+            {
+                await _carService.UpdateAsync(car);
+                return RedirectToAction(nameof(Index));
+            }
+            return View(car);
+        }
+
+        // Araç sil (GET)
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null) return NotFound();
+            var car = await _carService.GetByIdAsync(id.Value);
+            if (car == null) return NotFound();
+            return View(car);
+        }
+
+        // Araç sil (POST)
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            await _carService.DeleteAsync(id);
+            return RedirectToAction(nameof(Index));
+        }
+    }
+} 

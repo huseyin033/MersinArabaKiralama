@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Enönde Kiralama</title>
+    <!-- <script type="importmap"></script> -->
+    <!-- <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /> -->
+    <!-- <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> -->
+    <link rel="stylesheet" href="~/css/identity.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/custom.css" asp-append-version="true" />
+    <!-- <link rel="stylesheet" href="~/MersinAracKiralama.styles.css" asp-append-version="true" /> -->
+    
+    <!-- jQuery ve Doğrulama Kütüphaneleri -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.20.0/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+    <script>
+        // Kredi kartı doğrulamasını devre dışı bırak
+        $.validator.methods.creditcard = function() { return true; };
+        
+        // Özel kredi kartı doğrulama kuralı
+        $.validator.addMethod("customCreditCard", function(value, element) {
+            // Sadece rakam ve boşluklardan oluşup oluşmadığını kontrol et
+            return this.optional(element) || /^[0-9\s]{13,19}$/.test(value);
+        }, "Lütfen geçerli bir kredi kartı numarası giriniz.");
+    </script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm animate-navbar">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Enönde Kiralama</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Car" asp-action="Index">Araç Yönetimi</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Rental" asp-action="Index">Kiralama Yönetimi</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Customer" asp-action="Index">Müşteri Yönetimi</a>
+                                </li>
+                            }
+                            else if (User.IsInRole("Customer"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Car" asp-action="Index">Araçlar</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Car" asp-action="Favorites">Favorilerim</a>
+                                </li>
+                            }
+                        }
+                    </ul>
+                    <ul class="navbar-nav ms-auto">
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item me-2">
+                                <span class="navbar-text text-dark me-2">@User.Identity.Name</span>
+                            </li>
+                            <li class="nav-item">
+                                <form asp-area="Identity" asp-page="/Account/Logout" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-danger">Çıkış Yap</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item me-2">
+                                <a class="btn btn-outline-light" asp-area="Identity" asp-page="/Account/Login">Giriş Yap</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-primary" asp-area="Identity" asp-page="/Account/Register">Kayıt Ol</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="hero-background"></div>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <!-- Başarı Mesajı -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                </div>
+                
+                <!-- 5 saniye sonra otomatik kapanma efekti için JavaScript -->
+                <script>
+                    $(document).ready(function() {
+                        setTimeout(function() {
+                            $('.alert').fadeOut('slow', function() {
+                                $(this).alert('close');
+                            });
+                        }, 5000);
+                    });
+                </script>
+            }
+            
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                </div>
+            }
+            
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - Enönde Kiralama - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <!-- Removed local jquery and bootstrap bundle scripts -->
+    <!-- <script src="~/lib/jquery/dist/jquery.min.js"></script> -->
+    <!-- jQuery ve doğrulama kütüphaneleri -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/additional-methods.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive@4.0.0/dist/jquery.validate.unobtrusive.min.js"></script>
+    <script>
+        // Kredi kartı validasyonunu devre dışı bırak
+        $.validator.methods.creditcard = function() { return true; };
+    </script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Sayfa yüklendikten sonra çalışacak scriptler -->
+    <script>
+        // jQuery'nin yüklendiğinden emin ol
+        function jqueryLoaded() {
+            return typeof jQuery !== 'undefined';
+        }
+
+        // jQuery kullanarak güvenli element seçme
+        function safeQuerySelector(selector) {
+            try {
+                return $(selector).length ? $(selector) : null;
+            } catch (e) {
+                console.error('Element seçilemedi:', selector, e);
+                return null;
+            }
+        }
+
+        // Sayfa yüklendiğinde çalışacak fonksiyon
+        function initPaymentForm() {
+            // jQuery'nin yüklü olduğundan emin ol
+            if (!jqueryLoaded()) {
+                console.error('jQuery yüklenemedi!');
+                return;
+            }
+
+            // Elementleri güvenli şekilde seç
+            const $cvvInput = safeQuerySelector('#CVV');
+            const $cvvError = safeQuerySelector('#cvvError');
+            const $cardNumberInput = safeQuerySelector('#CardNumber');
+            const $cvvHelp = safeQuerySelector('#cvvHelp');
+
+            // Eğer ödeme formu elementleri mevcutsa
+            if ($cvvInput && $cardNumberInput) {
+                // Kart numarası değiştiğinde
+                $cardNumberInput.on('input', function() {
+                    const cardNumber = $(this).val().replace(/\s+/g, '');
+                    if (cardNumber.startsWith('34') || cardNumber.startsWith('37')) {
+                        $cvvInput.attr('maxlength', 4).attr('placeholder', '4 haneli');
+                        if ($cvvHelp.length) $cvvHelp.text('Kartınızın ön yüzündeki 4 haneli güvenlik kodu');
+                    } else {
+                        $cvvInput.attr('maxlength', 3).attr('placeholder', '3 haneli');
+                        if ($cvvHelp.length) $cvvHelp.text('Kartınızın arkasındaki 3 haneli güvenlik kodu');
+                    }
+                });
+
+                // CVV giriş kontrolü
+                $cvvInput.on('input', function() {
+                    const $this = $(this);
+                    let value = $this.val();
+                    
+                    // Sadece rakam kontrolü
+                    if (/[^0-9]/.test(value)) {
+                        if ($cvvError.length) $cvvError.removeClass('d-none');
+                        $this.val(value.replace(/\D/g, ''));
+                    } else {
+                        if ($cvvError.length) $cvvError.addClass('d-none');
+                        
+                        // Maksimum uzunluk kontrolü
+                        const maxLength = parseInt($this.attr('maxlength')) || 4;
+                        if (value.length > maxLength) {
+                            $this.val(value.slice(0, maxLength));
+                        }
+                    }
+                });
+            }
+        }
+
+        // Sayfa yüklendiğinde çalıştır
+        $(document).ready(function() {
+            initPaymentForm();
+        });
+    </script>
+</body>
+</html>

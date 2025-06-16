@@ -1,0 +1,32 @@
+@model MersinArabaKiralama.Models.RegisterViewModel
+@{
+    ViewData["Title"] = "Kayıt Ol";
+}
+
+<h2>Kayıt Ol</h2>
+
+<form asp-action="Register" method="post" autocomplete="off">
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" class="form-control" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Kayıt Ol</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+    {
+        <div class="text-danger">@error.ErrorMessage</div>
+    }
+}

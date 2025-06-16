@@ -1,0 +1,176 @@
+@using Microsoft.AspNetCore.Identity
+@model IEnumerable<MersinArabaKiralama.Models.Car>
+
+@{
+    ViewData["Title"] = "Araç Listesi";
+    var isAdmin = User.IsInRole("Admin");
+}
+
+<h2>Araç Listesi</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["InfoMessage"] != null)
+{
+    <div class="alert alert-info">@TempData["InfoMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+@if (isAdmin)
+{
+    <a class="btn btn-primary mb-2" asp-action="Create">Yeni Araç Ekle</a>
+}
+<a class="btn btn-info mb-2" asp-action="Favorites">Favorilerim</a>
+
+<form method="get" class="row g-3 mb-3">
+    <div class="col-auto">
+        <input type="text" name="brand" class="form-control" placeholder="Marka ara..." value="@Context.Request.Query["brand"]" />
+    </div>
+    <div class="col-auto">
+        <input type="text" name="model" class="form-control" placeholder="Model ara..." value="@Context.Request.Query["model"]" />
+    </div>
+    <div class="col-auto">
+        <select name="isAvailable" class="form-select">
+            <option value="">Tümü</option>
+            <option value="true" selected="@(Context.Request.Query["isAvailable"] == "true" ? "selected" : null)">Müsait</option>
+            <option value="false" selected="@(Context.Request.Query["isAvailable"] == "false" ? "selected" : null)">Dolu</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <input type="number" name="minPrice" class="form-control" placeholder="Min Fiyat" value="@Context.Request.Query["minPrice"]" style="max-width:120px;" />
+    </div>
+    <div class="col-auto">
+        <input type="number" name="maxPrice" class="form-control" placeholder="Max Fiyat" value="@Context.Request.Query["maxPrice"]" style="max-width:120px;" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filtrele</button>
+    </div>
+</form>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th style="width: 50px;">Favori</th>
+            <th>Marka</th>
+            <th>Model</th>
+            <th>Yıl</th>
+            <th>Günlük Fiyat (₺)</th>
+            <th>Kiralama Günü</th>
+            <th>Toplam Fiyat (₺)</th>
+            <th>Müsaitlik</th>
+            <th>İşlemler</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td class="text-center align-middle">
+                    <form asp-action="ToggleFavorite" asp-route-carId="@item.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn p-0 border-0 bg-transparent" style="font-size: 1.8rem; outline: none; box-shadow: none;">
+                            @if (ViewBag.FavoriteCarIds != null && ((List<int>)ViewBag.FavoriteCarIds).Contains(item.Id))
+                            {
+                                <i class="bi bi-heart-fill text-danger"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-heart text-secondary"></i>
+                            }
+                        </button>
+                    </form>
+                </td>
+                <td>@item.Brand</td>
+                <td>@item.Model</td>
+                <td>@item.Year</td>
+                <td class="daily-price" data-price="@item.DailyPrice">@item.DailyPrice.ToString("N2")</td>
+                <td>
+                    <div class="input-group input-group-sm" style="width: 120px;">
+                        <button type="button" class="btn btn-outline-secondary btn-decrease">-</button>
+                        <input type="number" class="form-control text-center rental-days" value="1" min="1" data-car-id="@item.Id">
+                        <button type="button" class="btn btn-outline-secondary btn-increase">+</button>
+                    </div>
+                </td>
+                <td class="total-price" id="total-@item.Id">@item.DailyPrice.ToString("N2")</td>
+                <td>@(item.IsAvailable ? "Evet" : "Hayır")</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm mb-1">Detaylar</a>
+                    @if (isAdmin)
+                    {
+                        <a class="btn btn-warning btn-sm mb-1" asp-action="Edit" asp-route-id="@item.Id">Düzenle</a>
+                        <a class="btn btn-danger btn-sm mb-1" asp-action="Delete" asp-route-id="@item.Id">Sil</a>
+                    }
+                    <a class="btn btn-success btn-sm rental-btn" 
+                       asp-controller="Rental" 
+                       asp-action="Create" 
+                       asp-route-carId="@item.Id"
+                       data-car-id="@item.Id">Kirala</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Sayfa yüklendiğinde çalışacak kodlar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tüm araçlar için toplam fiyatı güncelle
+            document.querySelectorAll('.rental-days').forEach(input => {
+                updateTotalPrice(input);
+                
+                // Artırma butonları için event listener
+                input.nextElementSibling?.addEventListener('click', function() {
+                    input.stepUp();
+                    updateTotalPrice(input);
+                });
+
+                // Azaltma butonları için event listener
+                input.previousElementSibling?.addEventListener('click', function() {
+                    if (parseInt(input.value) > 1) {
+                        input.stepDown();
+                        updateTotalPrice(input);
+                    }
+                });
+
+                // Manuel giriş için event listener
+                input.addEventListener('change', function() {
+                    if (this.value < 1) this.value = 1;
+                    updateTotalPrice(this);
+                });
+            });
+
+
+            // Kirala butonuna gün sayısını ekle
+            document.querySelectorAll('.rental-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const carId = this.getAttribute('data-car-id');
+                    const daysInput = document.querySelector(`.rental-days[data-car-id="${carId}"]`);
+                    const days = daysInput ? daysInput.value : 1;
+                    this.href = `/Rental/Create?carId=${carId}&days=${days}`;
+                });
+            });
+        });
+
+        // Toplam fiyatı güncelleme fonksiyonu
+        function updateTotalPrice(input) {
+            const carId = input.getAttribute('data-car-id');
+            const days = parseInt(input.value) || 1;
+            const dailyPrice = parseFloat(input.closest('tr').querySelector('.daily-price').getAttribute('data-price'));
+            const totalPrice = (dailyPrice * days).toFixed(2);
+            document.getElementById(`total-${carId}`).textContent = totalPrice;
+            
+            // Kirala butonunun href'ini güncelle
+            const rentalBtn = document.querySelector(`.rental-btn[data-car-id="${carId}"]`);
+            if (rentalBtn) {
+                rentalBtn.href = `/Rental/Create?carId=${carId}&days=${days}`;
+            }
+        }
+    </script>
+}

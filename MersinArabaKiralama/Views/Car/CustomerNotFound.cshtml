@@ -1,0 +1,10 @@
+@{
+    ViewData["Title"] = "Müşteri Kaydı Bulunamadı";
+}
+<div class="container mt-5">
+    <div class="alert alert-warning text-center">
+        <h4 class="mb-3">Müşteri Kaydı Bulunamadı</h4>
+        <p>@ViewBag.CustomerError</p>
+        <a href="/Customer/Create" class="btn btn-primary mt-3">Müşteri Kaydı Oluştur</a>
+    </div>
+</div> 

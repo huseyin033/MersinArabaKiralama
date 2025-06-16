@@ -1,0 +1,99 @@
+/* Temel Sıfırlama */
+html {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Navbar Stilleri */
+.navbar {
+    padding: 0.5rem 0;
+    background-color: white !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    transition: color 0.3s ease;
+}
+
+.navbar-brand:hover {
+    color: #0d6efd;
+}
+
+.nav-link {
+    color: #2c3e50 !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #0d6efd !important;
+}
+
+.navbar-nav .nav-link {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* Ana İçerik */
+main {
+    flex: 1 0 auto;
+    width: 100%;
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+}
+
+/* Footer Stilleri */
+.footer {
+    width: 100%;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    padding: 1rem 0;
+    margin-top: auto;
+}
+
+.footer .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Responsive Düzenlemeler */
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        padding-top: 1rem;
+    }
+    
+    .navbar-nav {
+        margin-top: 0.5rem;
+    }
+    
+    .nav-link {
+        padding: 0.5rem 0 !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .navbar-brand {
+        font-size: 1.3rem;
+    }
+    
+    .footer {
+        text-align: center;
+    }
+    
+    .footer .container {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

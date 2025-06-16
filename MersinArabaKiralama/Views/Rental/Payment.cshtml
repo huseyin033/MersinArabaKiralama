@@ -1,0 +1,270 @@
+@model MersinArabaKiralama.ViewModels.PaymentViewModel
+
+@{ 
+    ViewData["Title"] = "Ödeme Yap";
+    var car = Model.Car;
+    var rentalDays = ViewBag.RentalDays as int? ?? 1;
+    var totalPrice = ViewBag.TotalPrice as decimal? ?? car?.DailyPrice * rentalDays;
+    var carId = ViewBag.CarId as int? ?? car?.Id;
+}
+
+<div id="paymentContainer">
+    @if (ViewBag.PaymentSuccess == true)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-2" style="font-size: 1.5rem;"></i>
+                <div>
+                    <h4 class="alert-heading mb-1">@ViewBag.SuccessMessage</h4>
+                    <p class="mb-0">Bizi tercih ettiğiniz için teşekkür ederiz.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="@Url.Action("Index", "Home")" class="btn btn-primary">
+                <i class="bi bi-house-door"></i> Anasayfaya Dön
+            </a>
+        </div>
+    }
+    else
+    {
+        <h2>Ödeme Bilgileri - @car?.Brand @car?.Model</h2>
+        
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        }
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Kiralama Detayları</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-5 fw-bold">Araç:</div>
+                            <div class="col-7">@car?.Brand @car?.Model (@car?.Year)</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-5 fw-bold">Günlük Fiyat:</div>
+                            <div class="col-7">@(car?.DailyPrice.ToString("N2")) ₺</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-5 fw-bold">Kiralama Süresi:</div>
+                            <div class="col-7">@rentalDays gün</div>
+                        </div>
+                        <div class="row mb-2 pt-2 border-top">
+                            <div class="col-5 fw-bold">Kampanyalar:</div>
+                            <div class="col-7">
+                                <div class="text-success">%10 indirimli ilk kiralama kampanyası uygulandı. İndirim: 206,00 ₺</div>
+                                <div class="text-success">Yaz Kampanyası: 3 Gün Kirala 1 Gün Bedava! 1 gün ücretsiz. İndirim: 515,00 ₺</div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-5 fw-bold">Toplam Fiyat:</div>
+                            <div class="col-7 fw-bold text-primary">@(totalPrice?.ToString("N2")) ₺</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h4>Kart Bilgileri</h4>
+                <form id="paymentForm" asp-action="ProcessPayment" asp-route-carId="@carId" asp-route-rentalDays="@rentalDays" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    
+                    <input type="hidden" asp-for="Car.Id" value="@car?.Id" />
+                    <input type="hidden" asp-for="Car.Brand" value="@car?.Brand" />
+                    <input type="hidden" asp-for="Car.Model" value="@car?.Model" />
+                    <input type="hidden" asp-for="Car.Year" value="@car?.Year" />
+                    <input type="hidden" asp-for="Car.DailyPrice" value="@car?.DailyPrice" />
+                    <input type="hidden" asp-for="Car.IsAvailable" value="@car?.IsAvailable" />
+                    <input type="hidden" asp-for="Car.ImageUrl" value="@car?.ImageUrl" />
+
+                    <div class="form-group mb-2">
+                        <label asp-for="CardName" class="control-label"></label>
+                        <input asp-for="CardName" class="form-control" />
+                        <span asp-validation-for="CardName" class="text-danger"></span>
+                    </div>
+                    <div class="form-group mb-2">
+                        <label asp-for="CardNumber" class="control-label">Kart Numarası</label>
+                        <input asp-for="CardNumber" class="form-control" 
+                               placeholder="Kart numaranızı giriniz" 
+                               data-val="true" 
+                               data-val-required="Kart numarası zorunludur"
+                               data-val-customcreditcard="Lütfen geçerli bir kredi kartı numarası giriniz"
+                               data-val-regex-pattern="^[0-9\s]{13,19}$"
+                               data-val-regex="Kredi kartı numarası sadece rakam içermelidir" />
+                        <span asp-validation-for="CardNumber" class="text-danger"></span>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Expiration" class="control-label"></label>
+                                <input asp-for="Expiration" class="form-control" placeholder="AA/YY" />
+                                <span asp-validation-for="Expiration" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="CVV" class="control-label"></label>
+                                <input asp-for="CVV" class="form-control" id="CVV" placeholder="CVV" maxlength="4" />
+                                <span id="cvvError" class="text-danger d-none">Lütfen sadece rakam giriniz</span>
+                                <span asp-validation-for="CVV" class="text-danger"></span>
+                                <small class="form-text text-muted" id="cvvHelp">Kartınızın arkasındaki 3 veya 4 haneli güvenlik kodu</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mt-3">
+                        <button type="submit" class="btn btn-primary">Öde</button>
+                        <a asp-action="Details" asp-controller="Car" asp-route-id="@car?.Id" class="btn btn-secondary">İptal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#paymentForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                var form = $(this);
+                
+                // Form doğrulamasını kontrol et
+                if (!form.valid()) {
+                    return false;
+                }
+                
+                // Butonu devre dışı bırak ve yükleniyor göster
+                var submitButton = form.find('button[type="submit"]');
+                var originalText = submitButton.html();
+                submitButton.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> İşleniyor...');
+                
+                $.ajax({
+                    url: form.attr('action'),
+                    type: 'POST',
+                    data: form.serialize(),
+                    success: function(response) {
+                        // Sunucudan gelen HTML yanıtını işle
+                        var result = $(response).find('#paymentContainer').html();
+                        if (result) {
+                            $('#paymentContainer').html(result);
+                            
+                            // Sayfayı yukarı kaydır
+                            $('html, body').animate({
+                                scrollTop: 0
+                            }, 500);
+                        }
+                    },
+                    error: function() {
+                        alert('Ödeme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyiniz.');
+                    },
+                    complete: function() {
+                        // Butonu tekrar aktif et
+                        submitButton.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+            
+            // Kart numarası formatlama
+            $('#CardNumber').on('input', function() {
+                var value = $(this).val().replace(/\D/g, '');
+                value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+                $(this).val(value.trim());
+            });
+            
+            // Son kullanma tarihi formatlama
+            $('#Expiration').on('input', function() {
+                var value = $(this).val().replace(/\D/g, '');
+                if (value.length > 2) {
+                    value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                }
+                $(this).val(value);
+            });
+        });
+    </script>
+    
+    <script>
+        // Kredi kartı numarası için otomatik boşluk ekleme
+        document.getElementById('CardNumber').addEventListener('input', function(e) {
+            // Sadece rakamları al
+            let value = e.target.value.replace(/\D/g, '');
+            
+            // 4'er haneli gruplara ayır
+            let formatted = '';
+            for (let i = 0; i < value.length && i < 16; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formatted += ' ';
+                }
+                formatted += value[i];
+            }
+            
+            // Değeri güncelle
+            e.target.value = formatted;
+        });
+
+        // Son kullanma tarihi için otomatik / ekleme
+        document.getElementById('Expiration').addEventListener('input', function(e) {
+            // Sadece rakamları al
+            let value = e.target.value.replace(/\D/g, '');
+            
+            // İlk 2 haneden sonra / ekle
+            if (value.length > 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            
+            // Maksimum 5 karakter (MM/YY)
+            if (value.length > 5) {
+                value = value.substring(0, 5);
+            }
+            
+            // Değeri güncelle
+            e.target.value = value;
+        });
+
+        // CVV doğrulama
+        const cvvInput = document.getElementById('CVV');
+        const cvvError = document.getElementById('cvvError');
+        const cardNumberInput = document.getElementById('CardNumber');
+
+        // Kart numarası değiştiğinde CVV uzunluğunu ayarla
+        cardNumberInput.addEventListener('input', function() {
+            const cardNumber = this.value.replace(/\s+/g, ''); // Boşlukları kaldır
+            if (cardNumber.startsWith('34') || cardNumber.startsWith('37')) {
+                // American Express
+                cvvInput.maxLength = 4;
+                cvvInput.placeholder = '4 haneli';
+                document.getElementById('cvvHelp').textContent = 'Kartınızın ön yüzündeki 4 haneli güvenlik kodu';
+            } else {
+                // Diğer kartlar
+                cvvInput.maxLength = 3;
+                cvvInput.placeholder = '3 haneli';
+                document.getElementById('cvvHelp').textContent = 'Kartınızın arkasındaki 3 haneli güvenlik kodu';
+            }
+        });
+
+        // CVV giriş kontrolü
+        cvvInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            
+            // Sadece rakam kontrolü
+            if (/[^0-9]/.test(value)) {
+                cvvError.classList.remove('d-none');
+                e.target.value = value.replace(/\D/g, ''); // Sadece rakamları al
+            } else {
+                cvvError.classList.add('d-none');
+                
+                // Maksimum uzunluk kontrolü
+                const maxLength = parseInt(e.target.maxLength);
+                if (value.length > maxLength) {
+                    e.target.value = value.slice(0, maxLength);
+                }
+            }
+        });
+    </script>
+}
